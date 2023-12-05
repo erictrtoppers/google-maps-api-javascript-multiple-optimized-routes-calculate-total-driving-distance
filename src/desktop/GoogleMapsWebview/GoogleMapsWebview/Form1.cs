@@ -35,10 +35,10 @@ namespace GoogleMapsWebview
         public async void loadWebview()
         {
             await webView21.EnsureCoreWebView2Async();
-            await webView21.CoreWebView2.Profile.ClearBrowsingDataAsync();
+            // For debugging / clear cache
+            //await webView21.CoreWebView2.Profile.ClearBrowsingDataAsync();
             webView21.Source = new Uri("{YOUR_URL_THAT_IS_ALLOWED_GOOGLE_API_KEY_REFERER}/google_maps.html?mode=embeddedMulti", UriKind.Absolute);
             webView21.WebMessageReceived += MessageReceived;
-            webView21.NavigationCompleted += WebView_NavigationCompleted;
         }
 
         public async void MessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs args)
@@ -48,7 +48,10 @@ namespace GoogleMapsWebview
             {
                 if (content.StartsWith("initMaps"))
                 {
-
+                    // Load the first address into the map and wait for it to finish rendering before adding the rest of the addresses
+                    // via the message received callback
+                    await webView21.ExecuteScriptAsync(@"addAddress('" + addressesToLoad[indexProcessed] + "');");
+                    indexProcessed++;
                 }
                 else if (content.StartsWith("markerAdded"))
                 {
@@ -71,14 +74,6 @@ namespace GoogleMapsWebview
                     label2.Text = "Total distance between all points is " + totalDistanceBetweenMultiplePoints.ToString("0.00");
                 }
             }
-        }
-
-        public async void WebView_NavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
-        {
-            // Load the first address into the map and wait for it to finish rendering before adding the rest of the addresses
-            // via the message received callback
-            await webView21.ExecuteScriptAsync(@"addAddress('" + addressesToLoad[indexProcessed] + "');");
-            indexProcessed++;
         }
     }
 }
