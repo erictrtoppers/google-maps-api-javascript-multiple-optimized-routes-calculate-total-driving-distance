@@ -10,7 +10,7 @@ function sendDrivingDistanceResultToApp(result) {
     if (mapInteractiveMode && (mapInteractiveMode == "embedded" || mapInteractiveMode == "embeddedMulti")) {
         window.chrome.webview.postMessage(result);
     } else {
-        alert(result);
+        console.log(result);
     }
 }
 

@@ -6,6 +6,7 @@ var geocoder;
 var infowindow;
 var marker, i;
 var mapLabel;
+var tilesLoaded = false;
 
 window.addEventListener("load", (event) => {
     initGoogleMap();
@@ -67,7 +68,24 @@ function finishedAddingMarker() {
     }
 }
 
-function loadGoogleMap() {
+async function initMap() {
+    tilesLoaded = false;
+    const { Map } = await google.maps.importLibrary("maps");
+
+    // Load map labels library once only...
+    if (document.querySelector('.mapLabelsLibrary') == null) {
+        var script = document.createElement('script');
+        script.classList.remove('mapLabelsLibrary');
+        script.classList.add('mapLabelsLibrary');
+        script.src = 'js/maplabel.js';
+        document.head.appendChild(script);
+    }
+
+    map = new Map(document.getElementById("map"), {
+        center: { lat: -34.397, lng: 150.644 },
+        zoom: 8,
+    });
+
     clearLocations();
     map = new google.maps.Map(document.getElementById('map'), {
         zoom: 10,
@@ -75,9 +93,9 @@ function loadGoogleMap() {
         mapTypeId: google.maps.MapTypeId.ROADMAP,
     });
 
-
     map.addListener('tilesloaded', function () {
-        if (mapInteractiveMode && (mapInteractiveMode == "embedded" || mapInteractiveMode == "embeddedMulti")) {
+        if (mapInteractiveMode && (mapInteractiveMode == "embedded" || mapInteractiveMode == "embeddedMulti") && !tilesLoaded) {
+            tilesLoaded = true;
             window.chrome.webview.postMessage("initMaps");
         }
     });
@@ -103,6 +121,10 @@ function loadGoogleMap() {
             }
         })(marker, i));
     }
+}
+
+function loadGoogleMap() {
+    initMap();
 }
 
 function buildAddressFromObj(addressObj) {
