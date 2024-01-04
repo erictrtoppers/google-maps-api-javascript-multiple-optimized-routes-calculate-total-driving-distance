@@ -17,47 +17,62 @@ function initGoogleMap() {
 }
 
 function addAddressMarker(addressObj) {
-    var address = buildAddressFromObj(addressObj);
+    var address = buildAddressFromObj(addressObj.address);
 
     geocoder.geocode({ 'address': address }, function (results, status) {
-        console.log(results);
-        var latLng = { lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng() };
-        console.log(latLng);
-        if (status == 'OK') {
-            var marker = new google.maps.Marker({
-                position: latLng,
-                map: map
-            });
+        if (results != null) {
+            console.log(results);
+            var latLng = { lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng() };
+            console.log(latLng);
+            if (status == 'OK') {
+                var marker = new google.maps.Marker({
+                    position: latLng,
+                    map: map
+                });
 
-            locations.push(latLng);
+                locations.push(latLng);
 
 
-            // Redraw bounds
-            var bounds = new google.maps.LatLngBounds();
+                // Redraw bounds
+                var bounds = new google.maps.LatLngBounds();
 
-            for (i = 0; i < locations.length; i++) {
-                position = new google.maps.LatLng(locations[i].lat, locations[i].lng);
+                for (i = 0; i < locations.length; i++) {
+                    position = new google.maps.LatLng(locations[i].lat, locations[i].lng);
 
-                bounds.extend(position)
+                    bounds.extend(position)
+                }
+
+                map.fitBounds(bounds);
+
+                if (locations.length == 1) {
+                    map.setZoom(15);
+                }
+
+                var labelPosition = new google.maps.LatLng(latLng.lat, latLng.lng);
+
+                mapLabel = new MapLabel({
+                    text: addressObj.label ? addressObj.label : address,
+                    position: labelPosition,
+                    map: map,
+                    fontSize: 14
+                });
+
+                if (mapInteractiveMode && mapInteractiveMode == "embedded") {
+                    finishedAddingMarker();
+                }
+
+                if (mapInteractiveMode && (mapInteractiveMode == "embedded" || mapInteractiveMode == "embeddedMulti")) {
+                    // Post event
+                    window.chrome.webview.postMessage("markerAdded");
+                }
+
+            } else {
+                alert('Geocode was not successful for the following reason: ' + status);
             }
-
-            map.fitBounds(bounds);
-
-            if (locations.length == 1) {
-                map.setZoom(15);
-            }
-
-            if (mapInteractiveMode && mapInteractiveMode == "embedded") {
-                finishedAddingMarker();
-            }
-
-            if (mapInteractiveMode && (mapInteractiveMode == "embedded" || mapInteractiveMode == "embeddedMulti")) {
-                // Post event
-                window.chrome.webview.postMessage("markerAdded");
-            }
-
         } else {
-            alert('Geocode was not successful for the following reason: ' + status);
+            window.chrome.webview.postMessage("addressInvalid," + addressObj.address);
+            // Still need to fire marker added event so we can run the distance calculations even if some of the addresses are invalid:
+            window.chrome.webview.postMessage("markerAdded");
         }
     });
 }
@@ -170,7 +185,7 @@ function buildAddressFromObj(addressObj) {
 function addAddressViaStr() {
     var strAddr = document.getElementById('addressText').value;
     if (strAddr) {
-        addAddressMarker(strAddr);
+        addAddressMarker({ address: strAddr, label: strAddr });
     }
 }
 
