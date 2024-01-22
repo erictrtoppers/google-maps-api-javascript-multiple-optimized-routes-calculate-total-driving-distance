@@ -42,7 +42,8 @@
 			<button id="getDrivingFirstTwo" onclick="calcDistTwo(0, 1, sendDrivingDistanceResultToApp);">Get Driving Distance Between First Two Points</button>
 			<button id="getP2PFirstTwo" onclick="alert(calcDistTwoP2P(0, 1) + ' mi');">Get Point to Point Distance Between First Two Points</button>
 		-->
-		<button id="getAllDriving" onclick="calcDistanceAll(sendDrivingDistanceResultToApp)">Get Driving Distances All Points</button>
+		<button id="getAllDriving" onclick="calcDistanceAll(sendDrivingDistanceResultToApp, true);">Get Optimized Driving Distances All Points</button>
+		<button id="getAllDriving2" onclick="calcDistanceAll(sendDrivingDistanceResultToApp);">Get Non-Optimized Driving Distances All Points</button>
 	</p>
   
 	<script type="text/javascript" src="js/google_maps.js"></script>

@@ -32,6 +32,13 @@ function addAddressMarker(addressObj) {
 
                 locations.push(latLng);
 
+                var infoWindow = new google.maps.InfoWindow({
+                    content: addressObj.label ? addressObj.label : address,
+                });
+
+                marker.addListener('click', function () {
+                    infoWindow.open(map, marker);
+                });
 
                 // Redraw bounds
                 var bounds = new google.maps.LatLngBounds();
@@ -105,7 +112,11 @@ async function initMap() {
     map = new google.maps.Map(document.getElementById('map'), {
         zoom: 10,
         center: new google.maps.LatLng(38.281219, -104.489109),
-        mapTypeId: google.maps.MapTypeId.ROADMAP,
+        streetViewControl: true,
+        mapTypeControl: true,
+        mapTypeControlOptions: {
+            mapTypeIds: [google.maps.MapTypeId.HYBRID, google.maps.MapTypeId.ROADMAP, google.maps.MapTypeId.SATELLITE, google.maps.MapTypeId.TERRAIN]
+        }
     });
 
     map.addListener('tilesloaded', function () {
@@ -116,7 +127,7 @@ async function initMap() {
     });
 
     directionsService = new google.maps.DirectionsService();
-    directionsRenderer = new google.maps.DirectionsRenderer();
+    directionsRenderer = new google.maps.DirectionsRenderer({ suppressMarkers: true });
     directionsRenderer.setMap(map); // Existing map object displays directions
 
     geocoder = new google.maps.Geocoder();
@@ -234,7 +245,7 @@ let calculateDrivingDistanceBetweenPoints = function (addressObj1, addressObj2) 
     });
 };
 
-let calculateDrivingDistanceMulti = function (allAddresses) {
+let calculateDrivingDistanceMulti = function (allAddresses, optimizeRoutes) {
     return new Promise(function (resolve, reject) {
         // Reoder first and last origin based on furthest points...
         // This will help with route optimization
@@ -243,17 +254,22 @@ let calculateDrivingDistanceMulti = function (allAddresses) {
         var startIndex = null;
         var endIndex = null;
 
-        // Bubble
-        for (var k = 0; k < newAddresses.length; k++) {
-            for (var l = 0; l < newAddresses.length; l++) {
-                var tempDist = parseFloat(calculateP2PDistanceBetweenPoints(newAddresses[k], newAddresses[l]));
-                if (tempDist > longestDistanceBetweenPoints) {
-                    longestDistanceBetweenPoints = tempDist;
-                    startIndex = k;
-                    endIndex = l;
-                }
-            }
-        }
+		if(optimizeRoutes){
+			// Bubble
+			for (var k = 0; k < newAddresses.length; k++) {
+				for (var l = 0; l < newAddresses.length; l++) {
+					var tempDist = parseFloat(calculateP2PDistanceBetweenPoints(newAddresses[k], newAddresses[l]));
+					if (tempDist > longestDistanceBetweenPoints) {
+						longestDistanceBetweenPoints = tempDist;
+						startIndex = k;
+						endIndex = l;
+					}
+				}
+			}
+		}else{
+			startIndex = 0;
+			endIndex = allAddresses.length - 1;
+		}
 
         var newAddressesReordered = new Array();
         if (startIndex != null && endIndex != null) {
@@ -288,7 +304,7 @@ let calculateDrivingDistanceMulti = function (allAddresses) {
             }
 
             route.waypoints = waypts;
-            route.optimizeWaypoints = true;
+            route.optimizeWaypoints = optimizeRoutes;
         }
 
         directionsService.route(route,
@@ -302,7 +318,11 @@ let calculateDrivingDistanceMulti = function (allAddresses) {
                     const routeResp = response.routes[0];
                     // For each route, display summary information.
                     for (let k = 0; k < routeResp.legs.length; k++) {
-                        drivingDistance += parseFloat(routeResp.legs[k].distance.text);
+						var legDistance = routeResp.legs[k].distance.text.replace(/[^\d.-]+/g, '');
+						var splitStr = "{SPLIT_SEPARATOR}";
+						window.chrome.webview.postMessage("legInfo," + legDistance + splitStr + routeResp.legs[k].start_address + splitStr + routeResp.legs[k].end_address);
+						
+                        drivingDistance += parseFloat(legDistance);
 
                         var midpointLatLong = midpoint(routeResp.legs[k].start_location.lat(), routeResp.legs[k].start_location.lng(), routeResp.legs[k].end_location.lat(), routeResp.legs[k].end_location.lng());
                         var labelPosition = new google.maps.LatLng(midpointLatLong.lat, midpointLatLong.lng);
@@ -345,8 +365,12 @@ function calcDistTwo(startIndex, endIndex, callbackFunc) {
     }
 }
 
-function calcDistanceAll(callbackFunc) {
-    var resp = calculateDrivingDistanceMulti(locations).then(function (result) {
+function calcDistanceAll(callbackFunc, optimizeRoutes) {
+	if(typeof optimizeRoutes === typeof undefined){
+		optimizeRoutes = false;
+	}
+	
+    var resp = calculateDrivingDistanceMulti(locations, optimizeRoutes).then(function (result) {
         callbackFunc(result);
     }, function (error) {
         callbackFunc(error);

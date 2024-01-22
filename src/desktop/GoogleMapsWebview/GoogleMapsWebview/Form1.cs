@@ -13,6 +13,7 @@ namespace GoogleMapsWebview
     {
         public int indexProcessed = 0;
         public float totalDistanceBetweenMultiplePoints = 0;
+        public string splitStr = "{SPLIT_SEPARATOR}";
 
         public List<MapsAddress> addressesToLoad = new List<MapsAddress>()
         {
@@ -48,6 +49,7 @@ namespace GoogleMapsWebview
         {
             string content = args.TryGetWebMessageAsString();
             string invalidAddressStart = "addressInvalid,";
+            string legInfo = "legInfo,";
 
             if (!string.IsNullOrEmpty(content))
             {
@@ -69,13 +71,22 @@ namespace GoogleMapsWebview
                     else
                     {
                         // Route and calculate all waypoints
-                        await webView21.ExecuteScriptAsync(@"calcDistanceAll(sendDrivingDistanceResultToApp);");
+                        // Second parameter to calcDistanceAll is whether or not the waypoints should be optimized (if you want an optimized route, pass true, otherwise leave off the paramter or pass false)
+                        await webView21.ExecuteScriptAsync(@"calcDistanceAll(sendDrivingDistanceResultToApp, true);");
                     }
                 }
                 else if (content.StartsWith(invalidAddressStart))
                 {
                     string invalidAddress = content.Substring(content.IndexOf(invalidAddressStart) + invalidAddressStart.Length);
                     MessageBox.Show("Address \"" + invalidAddress + "\" is invalid!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                else if (content.StartsWith(legInfo))
+                {
+                    var infoStr = content.Substring(legInfo.Length);
+                    var pieces = infoStr.Split(splitStr);
+                    decimal distance = Convert.ToDecimal(pieces[0]);
+                    string startAddress = pieces[1];
+                    string endAddress = pieces[2];
                 }
                 else
                 {
