@@ -22,7 +22,7 @@ function addAddressMarker(addressObj) {
     geocoder.geocode({ 'address': address }, function (results, status) {
         if (results != null) {
             console.log(results);
-            var latLng = { lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng() };
+            var latLng = { lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng(), addr: (addressObj.label ? addressObj.label : address) };
             console.log(latLng);
             if (status == 'OK') {
                 var marker = new google.maps.Marker({
@@ -77,9 +77,11 @@ function addAddressMarker(addressObj) {
                 alert('Geocode was not successful for the following reason: ' + status);
             }
         } else {
-            window.chrome.webview.postMessage("addressInvalid," + addressObj.address);
-            // Still need to fire marker added event so we can run the distance calculations even if some of the addresses are invalid:
-            window.chrome.webview.postMessage("markerAdded");
+            if (mapInteractiveMode && (mapInteractiveMode == "embedded" || mapInteractiveMode == "embeddedMulti")) {
+                window.chrome.webview.postMessage("addressInvalid," + addressObj.address);
+                // Still need to fire marker added event so we can run the distance calculations even if some of the addresses are invalid:
+                window.chrome.webview.postMessage("markerAdded");
+            }
         }
     });
 }
@@ -285,6 +287,7 @@ let calculateDrivingDistanceMulti = function (allAddresses, optimizeRoutes) {
         }
 
         var wayptAddresses = newAddressesReordered.slice(0);
+        var originalWayptAddresses = newAddressesReordered.slice(0);
         wayptAddresses.splice(0, 1);
         wayptAddresses.splice(wayptAddresses.length - 1, 1);
 
@@ -316,11 +319,35 @@ let calculateDrivingDistanceMulti = function (allAddresses, optimizeRoutes) {
                     var drivingDistance = 0.00;
 
                     const routeResp = response.routes[0];
+
+                    var orderOfLegs = new Array();
+
+                    if (optimizeRoutes) {
+                        orderOfLegs.push(originalWayptAddresses[0]);
+                        if (routeResp.waypoint_order.length) {
+                            for (let z = 0; z < routeResp.waypoint_order.length; z++) {
+                                orderOfLegs.push(originalWayptAddresses[routeResp.waypoint_order[z] + 1]);
+                            }
+                        }
+                        orderOfLegs.push(originalWayptAddresses[originalWayptAddresses.length - 1]);
+                    } else {
+                        for (let z = 0; z < originalWayptAddresses.length; z++) {
+                            orderOfLegs.push(originalWayptAddresses[z]);
+                        }
+                    }
+
                     // For each route, display summary information.
                     for (let k = 0; k < routeResp.legs.length; k++) {
 						var legDistance = routeResp.legs[k].distance.text.replace(/[^\d.-]+/g, '');
-						var splitStr = "{SPLIT_SEPARATOR}";
-						window.chrome.webview.postMessage("legInfo," + legDistance + splitStr + routeResp.legs[k].start_address + splitStr + routeResp.legs[k].end_address);
+                        var splitStr = "{SPLIT_SEPARATOR}";
+                        var strToPost = "legInfo," + legDistance + splitStr + routeResp.legs[k].start_address + splitStr + routeResp.legs[k].end_address;
+                        strToPost += splitStr + orderOfLegs[k].addr + splitStr + orderOfLegs[k + 1].addr;
+
+                        if (mapInteractiveMode && (mapInteractiveMode == "embedded" || mapInteractiveMode == "embeddedMulti")) {
+                            window.chrome.webview.postMessage(strToPost);
+                        } else {
+                            console.log(strToPost);
+                        }
 						
                         drivingDistance += parseFloat(legDistance);
 

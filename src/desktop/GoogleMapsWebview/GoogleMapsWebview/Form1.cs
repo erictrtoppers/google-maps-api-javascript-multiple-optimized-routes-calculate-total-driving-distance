@@ -70,8 +70,10 @@ namespace GoogleMapsWebview
                     }
                     else
                     {
-                        // Route and calculate all waypoints
-                        // Second parameter to calcDistanceAll is whether or not the waypoints should be optimized (if you want an optimized route, pass true, otherwise leave off the paramter or pass false)
+                        // Route and calculate all waypoints non-optimized
+                        // await webView21.ExecuteScriptAsync(@"calcDistanceAll(sendDrivingDistanceResultToApp);");
+
+                        // Route and calculate all waypoints optimized
                         await webView21.ExecuteScriptAsync(@"calcDistanceAll(sendDrivingDistanceResultToApp, true);");
                     }
                 }
@@ -85,8 +87,10 @@ namespace GoogleMapsWebview
                     var infoStr = content.Substring(legInfo.Length);
                     var pieces = infoStr.Split(splitStr);
                     decimal distance = Convert.ToDecimal(pieces[0]);
-                    string startAddress = pieces[1];
-                    string endAddress = pieces[2];
+                    string googleFormattedStartAddress = pieces[1];
+                    string googleFormattedEndAddress = pieces[2];
+                    string originalStartAddress = pieces[3];
+                    string originalEndAddress = pieces[4];
                 }
                 else
                 {
