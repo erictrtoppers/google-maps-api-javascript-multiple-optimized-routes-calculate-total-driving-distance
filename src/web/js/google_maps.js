@@ -23,6 +23,11 @@ function addAddressMarker(addressObj) {
         if (results != null) {
             console.log(results);
             var latLng = { lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng(), addr: (addressObj.label ? addressObj.label : address) };
+
+            if (addressObj.hasOwnProperty('id') && addressObj.id) {
+                latLng.id = addressObj.id;
+            }
+
             console.log(latLng);
             if (status == 'OK') {
                 var marker = new google.maps.Marker({
@@ -198,7 +203,7 @@ function buildAddressFromObj(addressObj) {
 function addAddressViaStr() {
     var strAddr = document.getElementById('addressText').value;
     if (strAddr) {
-        addAddressMarker({ address: strAddr, label: strAddr });
+        addAddressMarker({ address: strAddr, label: strAddr, id: locations.length + 1 });
     }
 }
 
@@ -342,6 +347,23 @@ let calculateDrivingDistanceMulti = function (allAddresses, optimizeRoutes) {
                         var splitStr = "{SPLIT_SEPARATOR}";
                         var strToPost = "legInfo," + legDistance + splitStr + routeResp.legs[k].start_address + splitStr + routeResp.legs[k].end_address;
                         strToPost += splitStr + orderOfLegs[k].addr + splitStr + orderOfLegs[k + 1].addr;
+
+                        // Latitude and longitude
+                        strToPost += splitStr + orderOfLegs[k].lat + splitStr + orderOfLegs[k].lng;
+                        strToPost += splitStr + orderOfLegs[k + 1].lat + splitStr + orderOfLegs[k + 1].lng;
+
+                        // Ids
+                        if (orderOfLegs[k].hasOwnProperty('id') && orderOfLegs[k].id) {
+                            strToPost += splitStr + orderOfLegs[k].id;
+                        } else {
+                            strToPost += splitStr + "";
+                        }
+
+                        if (orderOfLegs[k + 1].hasOwnProperty('id') && orderOfLegs[k + 1].id) {
+                            strToPost += splitStr + orderOfLegs[k + 1].id;
+                        } else {
+                            strToPost += splitStr + "";
+                        }
 
                         if (mapInteractiveMode && (mapInteractiveMode == "embedded" || mapInteractiveMode == "embeddedMulti")) {
                             window.chrome.webview.postMessage(strToPost);

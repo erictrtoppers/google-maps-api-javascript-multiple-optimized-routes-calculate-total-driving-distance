@@ -14,5 +14,9 @@ namespace GoogleMapsWebview.Classes
 
         [JsonPropertyName("label")]
         public string Label { get; set; }
+
+        [JsonPropertyName("id")]
+        public string? Id { get; set; }
+
     }
 }

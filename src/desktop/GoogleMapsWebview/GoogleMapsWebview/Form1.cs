@@ -20,10 +20,10 @@ namespace GoogleMapsWebview
             // Not built in optimal route order
             // It will be rendered in optimal route order though due to processing /
             // magic logic on the web portion that finds the furthest two points from each other....
-            new MapsAddress { Address = "3201 E Platte Ave, Colorado Springs, CO 80909", Label = "Colorado Springs Walmart" },
+            new MapsAddress { Address = "3201 E Platte Ave, Colorado Springs, CO 80909", Label = "Colorado Springs Walmart", Id = "someDBId1" },
             new MapsAddress { Address = "4200 Dillon Dr, Pueblo, CO 81008", Label = "Pueblo Walmart" },
-            new MapsAddress { Address = "6310 S Us Highway 85-87, Fountain, CO 80817", Label = "85/87 Fountain Walmart" },
-            new MapsAddress { Address = "123 Fake Street", Label = "No exist..."}
+            new MapsAddress { Address = "6310 S Us Highway 85-87, Fountain, CO 80817", Label = "85/87 Fountain Walmart", Id = "someDBId983" },
+            new MapsAddress { Address = "123 Fake Street", Label = "No exist..." }
         };
 
         public Form1()
@@ -84,6 +84,9 @@ namespace GoogleMapsWebview
                 }
                 else if (content.StartsWith(legInfo))
                 {
+                    string startId = string.Empty;
+                    string endId = string.Empty;
+
                     var infoStr = content.Substring(legInfo.Length);
                     var pieces = infoStr.Split(splitStr);
                     decimal distance = Convert.ToDecimal(pieces[0]);
@@ -91,6 +94,20 @@ namespace GoogleMapsWebview
                     string googleFormattedEndAddress = pieces[2];
                     string originalStartAddress = pieces[3];
                     string originalEndAddress = pieces[4];
+                    string startLatitude = pieces[5];
+                    string startLongitude = pieces[6];
+                    string endLatitude = pieces[7];
+                    string endLongitude = pieces[8];
+
+                    if (pieces.Length >= 10)
+                    {
+                        startId = pieces[9];
+                    }
+
+                    if (pieces.Length >= 11)
+                    {
+                        endId = pieces[10];
+                    }
                 }
                 else
                 {
